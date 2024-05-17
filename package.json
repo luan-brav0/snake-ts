@@ -1,0 +1,29 @@
+{
+  "name": "beth-notes",
+  "version": "1.0.50",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "bun run --watch src/index.tsx",
+    "db:push": "bunx drizzle-kit push:sqlite",
+    "db:studio": "bunx drizzle-kit studio"
+  },
+  "dependencies": {
+    "@elysiajs/html": "^0.7.3",
+    "@libsql/client": "^0.4.0-pre.5",
+    "drizzle-orm": "^0.29.1",
+    "elysia": "latest"
+  },
+  "devDependencies": {
+    "@flydotio/dockerfile": "latest",
+    "@typescript-eslint/eslint-plugin": "^6.13.2",
+    "bun-types": "latest",
+    "drizzle-kit": "^0.20.6",
+    "typed-html": "^3.0.1",
+    "typescript": "^5.3.3"
+  },
+  "module": "src/index.js",
+  "type": "module",
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
