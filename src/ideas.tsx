@@ -4,7 +4,7 @@ import * as elements from "typed-html";
 
 // const app = new Elysia().get("/", () => "Hello Elysia").listen(3000);
 
-const app = new Elysia()
+export const app = new Elysia()
   .use(html())
   .get("/", ({ html }) =>
     html(

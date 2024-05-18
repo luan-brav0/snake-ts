@@ -22,7 +22,7 @@ const app = new Elysia()
           >
             Click me
           </button>
-          <di
+          <div
             class="bg-gray-200"
             hx-get="/todos"
             hx-trigger="load"
