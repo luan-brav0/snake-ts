@@ -2,100 +2,64 @@ import { Elysia, t } from "elysia";
 import { html } from "@elysiajs/html";
 import * as elements from "typed-html";
 
-// const app = new Elysia().get("/", () => "Hello Elysia").listen(3000);
+/*
+ */
+import {
+    Cell,
+    CellState,
+    Direction,
+    GRID_SIZE,
+    GameState,
+    Grid,
+    Point,
+    Snake,
+    SnakeCell,
+    initGrid,
+    initSnake,
+    placeFood,
+    play,
+} from "./script";
 
 const app = new Elysia()
-  .use(html())
+    .use(html())
 
-  .get("/", ({ html }) =>
-    html(
-      <BaseHTML>
-        <body class="flex flex-col w-full h-screen justify-center items-center align-middle">
-          <h1 class="bold text-3xl my-2">
-            HTM<b class="ml-[-0.5rem] text-[#3d72d7]">X</b> from 🦊 Elysia, with
-            TailwindCSS
-          </h1>
-          <button
-            hx-post="/clicked"
-            hx-swap="innerHTML"
-            class="bg-gray-200 rounded-md shadow p-3"
-          >
-            Click me
-          </button>
-          <div
-            class="bg-gray-200"
-            hx-get="/todos"
-            hx-trigger="load"
-            hx-swap="outerHTML"
-          />
-        </body>
-      </BaseHTML>,
-    ),
-  )
+    .get("/", ({ html }) =>
+        html(
+            <BaseHTML>
+                <body class="flex flex-col w-full h-screen justify-center items-center align-middle">
+                    <h1 class="bold text-3xl my-2">
+                        <b class="text-[#3d72d7]">Snake.ts</b>🐍
+                    </h1>
+                    <div
+                        hx-get="/snake"
+                        hx-trigger="load"
+                        hx-swap="outerHTML"
+                    />
+                </body>
+            </BaseHTML>
+        )
+    )
 
-  .post("/clicked", () => <div>Greetings from the server</div>)
+    .get("/snake", (): JSX.Element => {
+        console.log("getting /snake")
+        return <Canvas grid={gs.grid} />;
+    })
 
-  .get("/todos", () => <TodoList todos={db} />)
-
-  .post(
-    "/todos/toggle/:id",
-    ({ params }) => {
-      const todo = db.find((todo) => todo.id === params.id);
-      if (todo) {
-        todo.completed = !todo.completed;
-        return <TodoItem {...todo} />;
-      }
+    .post("/snake/:x/:y/",({params}):JSX.Element => {
+        return <Pixel {...params} />
     },
     {
-      params: t.Object({
-        id: t.Numeric(),
-      }),
-    },
-  )
+        params: t.Object({
+            state: t.Enum(CellState),
+            x: t.Numeric(),
+            y: t.Numeric()
+        })
+    })
 
-  .delete(
-    "/todos/:id",
-    ({ params }) => {
-      const todo = db.find((todo) => todo.id === params.id);
-      if (todo) {
-        db.splice(db.indexOf(todo), 1);
-      }
-    },
-    {
-      params: t.Object({
-        id: t.Numeric(),
-      }),
-    },
-  )
-
-  .post(
-    "/todos",
-    ({ body }) => {
-      if (body.content.length == 0) {
-        throw new Error("Content cannot be empty");
-      }
-      const newTodo = {
-        id: getLastID() + 1,
-        content: body.content,
-        completed: false,
-      };
-      db.push(newTodo);
-      return <TodoItem {...newTodo} />;
-    },
-    {
-      body: t.Object({
-        content: t.String(),
-      }),
-    },
-  )
-
-  .get("/submit", () => {
-    return <TodoForm />;
-  })
-  .listen(3000);
+    .listen(3000);
 
 console.log(
-  `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`,
+    `🦊 Elysia is running @ ${app.server?.hostname}:${app.server?.port}`,
 );
 
 const BaseHTML = ({ children }: elements.Children) => `<!DOCTYPE html>
@@ -111,88 +75,45 @@ ${children}
 </html>
 `;
 
-type Todo = {
-  id: number;
-  content: string;
-  completed: boolean;
+let gs: GameState = {
+    isStillAlive: true,
+    grid: initGrid(),
+    snake: initSnake(),
+    food: [0, 0],
+    foodPlaced: false,
+    curDirection: Direction.Up,
+    lastDirection: Direction.Up
+};
+gs.food = placeFood(gs.snake);
+function continueGame(): void {
+    gs = play(gs)
+}
+continueGame();
+
+
+type Pixel = { state: CellState, x: number, y: number };
+const Pixel = ({ state, x, y }: Pixel): JSX.Element => {
+    const style: string = "w-3 h-3 text-3 border text-black ";
+    const c: string =  style + " " + state + " " + x.toString() + " " +  y.toString();
+
+    switch (state) {
+        case CellState.Empty:
+            return <div id={`${x}-${y}`} class={c + " bg-gray-500"} hx-post={`/snake/pixel/${x}/${y}`} hx-targe={`#${x}-${y}`} hx-swap="outerHTML" />;
+        case CellState.Snake:
+            return <div id={`${x}-${y}`} class={c + " bg-green-500"} hx-post={`/snake/pixel/${x}/${y}`} hx-targe={`#${x}-${y}`} hx-swap="outerHTML" />;
+        case CellState.Food:
+            return <div id={`${x}-${y}`} class={c + " bg-red-500"} hx-post={`/snake/pixel/${x}/${y}`} hx-targe={`#${x}-${y}`} hx-swap="outerHTML" />;
+    }
 };
 
-const db: Todo[] = [
-  { id: 1, content: "Learn HTMX", completed: false },
-  { id: 2, content: "Get good at TypeSript", completed: false },
-];
-
-function getLastID() {
-  if (db.length == 0) {
-    return 0;
-  }
-  return db[db.length - 1].id;
-}
-
-function TodoItem({ id, content, completed }: Todo) {
-  return (
-    <li class="todo flex flex-row space-x-3">
-      <p class={completed ? "line-through" : "bold"}>
-        {id}: {content}
-      </p>
-      <input
-        type="checkbox"
-        checked={completed}
-        hx-post={`/todos/toggle/${id}`}
-        hx-target="closest .todo"
-        hx-swap="outerHTML"
-      />
-      <button
-        class="text-red-500 bold text-2xl"
-        hx-delete={`/todos/${id}`}
-        hx-target="closest .todo"
-        hx-swap="outerHTML"
-      >
-        X
-      </button>
-    </li>
-  );
-}
-
-function TodoList({ todos }: { todos: Todo[] }) {
-  return (
-    <div id="todos_container">
-      <ul id="todo_list">
-        {todos.map((todo) => (
-          <TodoItem {...todo} />
-        ))}
-      </ul>
-      <TodoForm />
-    </div>
-  );
-}
-
-function TodoForm() {
-  return (
-    <form
-      id="todo_form"
-      class="flex flex-row space-x-3"
-      hx-post="/todos"
-      hx-target="#todo_list"
-      hx-swap="beforeend"
-    >
-      <input
-        id="input_todo"
-        type="text"
-        name="content"
-        class="border rounded-md border-gray-500 px-3 w-auto"
-        placeholder="Add a todo"
-        hx-get="/submit"
-        hx-target="#todo_form"
-        hx-swap="outerHTML"
-        hx-trigger="submit"
-      />
-      <button
-        type="submit"
-        class="bg-green-600 text-[1.2rem] bold text-white rounded-lg px-3 shadow"
-      >
-        +
-      </button>
-    </form>
-  );
+const Canvas = ({ grid }: { grid: Grid }): JSX.Element => {
+    return <div id="grid" class={`grid grid-cols-${GRID_SIZE}`}>
+        {...grid.map((row, x) => { 
+            return <div id="row" class="flex flex-row">
+                {...row.map((cell, y) => 
+                    <Pixel state={cell.state} x={x} y={y} />
+                )}
+            </div>;
+        })}
+    </div>;
 }
