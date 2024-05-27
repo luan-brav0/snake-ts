@@ -99,21 +99,22 @@ export function moveSnake(
     return snake.body;
 }
 
+export function updateGrid(grid: Grid, snake: Snake, food: Point): Grid {
+    snake.body.forEach((cell: SnakeCell) => {
+        grid[cell.coords[0]][cell.coords[1]].state = CellState.Snake;
+    })
+    grid[food[0]][food[1]].state = CellState.Food;
+    return grid
+}
+
 // pick random place for food, without snake init
-export function placeFood(snake: Snake): Point {
-    let foodIsNotOnSnake: boolean = true;
+export function placeFood(grid: Grid): Point {
     let foodCoords: Point = [0, 0];
-    while (foodIsNotOnSnake) {
+    while (grid[foodCoords[0]][foodCoords[1]].state != CellState.Empty) {
         foodCoords = [
             Math.floor(Math.random() * GRID_SIZE),
             Math.floor(Math.random() * GRID_SIZE),
         ];
-        for (let cell of snake.body) {
-            if ((cell.coords = foodCoords)) {
-                foodIsNotOnSnake = false;
-                break;
-            }
-        }
     }
     return foodCoords;
 }
@@ -128,20 +129,30 @@ export function play(gameState: GameState): GameState {
         curDirection,
         lastDirection,
     } = gameState;
-    if (!foodPlaced) {
-        food = placeFood(snake);
-        foodPlaced = !foodPlaced;
+    if (foodPlaced == false) {
+        food = placeFood(grid);
+        foodPlaced = true;
     }
     lastDirection = curDirection;
     snake.body = moveSnake(snake, curDirection);
+    // snake found food ? grow bigger 
     if (snake.body[0].coords == food) {
         snake.size++;
+        food = placeFood(grid);
+        foodPlaced = true;
     }
-    snake.body.map((cell: SnakeCell): void => {
-        if ((snake.body[0].coords == cell.coords)) {
+    // check for snake collision with itself
+    snake.body.map((cell: SnakeCell, i: number): void => {
+        if (i != 0 && snake.body[0].coords == cell.coords) {
             isStillAlive = false;
         }
     });
+    // update snake location on grid
+    snake.body.forEach((cell: SnakeCell) => {
+        grid[cell.coords[0]][cell.coords[1]].state = CellState.Snake;
+    })
+    // update food location on grid
+    grid[food[0]][food[1]].state = CellState.Food;
     return {
         isStillAlive,
         grid,
@@ -152,3 +163,18 @@ export function play(gameState: GameState): GameState {
         lastDirection,
     };
 }
+
+let gs: GameState = {
+    isStillAlive: true,
+    grid: initGrid(),
+    snake: initSnake(),
+    food: [0, 0],
+    foodPlaced: false,
+    curDirection: Direction.Up,
+    lastDirection: Direction.Up
+};
+gs.food = placeFood(gs.grid);
+function continueGame(): void {
+    gs = play(gs)
+}
+console.log("Game State:", gs);

@@ -23,6 +23,7 @@ import {
 const app = new Elysia()
     .use(html())
 
+    //TODO: Figure how to properly type { html } with TypeBox on Elysia
     .get("/", ({ html }) =>
         html(
             <BaseHTML>
@@ -45,7 +46,7 @@ const app = new Elysia()
         return <Canvas grid={gs.grid} />;
     })
 
-    .post("/snake/:x/:y/",({params}):JSX.Element => {
+    .post("/snake/:x/:y",({params}):JSX.Element => {
         return <Pixel {...params} />
     },
     {
@@ -84,11 +85,12 @@ let gs: GameState = {
     curDirection: Direction.Up,
     lastDirection: Direction.Up
 };
-gs.food = placeFood(gs.snake);
+gs.food = placeFood(gs.grid);
 function continueGame(): void {
-    gs = play(gs)
+    gs = play(gs);
 }
 continueGame();
+console.log("Game State:", gs);
 
 
 type Pixel = { state: CellState, x: number, y: number };
@@ -98,20 +100,25 @@ const Pixel = ({ state, x, y }: Pixel): JSX.Element => {
 
     switch (state) {
         case CellState.Empty:
-            return <div id={`${x}-${y}`} class={c + " bg-gray-500"} hx-post={`/snake/pixel/${x}/${y}`} hx-targe={`#${x}-${y}`} hx-swap="outerHTML" />;
+            return <div id={`${x}-${y}`} class={c + " bg-gray-500"} hx-post={`/snake/pixel/${x}/${y}`} hx-target={`#${x}-${y}`} hx-swap="outerHTML" />;
         case CellState.Snake:
-            return <div id={`${x}-${y}`} class={c + " bg-green-500"} hx-post={`/snake/pixel/${x}/${y}`} hx-targe={`#${x}-${y}`} hx-swap="outerHTML" />;
+            return <div id={`${x}-${y}`} class={c + " bg-green-500"} hx-post={`/snake/pixel/${x}/${y}`} hx-target={`#${x}-${y}`} hx-swap="outerHTML" />;
         case CellState.Food:
-            return <div id={`${x}-${y}`} class={c + " bg-red-500"} hx-post={`/snake/pixel/${x}/${y}`} hx-targe={`#${x}-${y}`} hx-swap="outerHTML" />;
+            return <div id={`${x}-${y}`} class={c + " bg-red-500"} hx-post={`/snake/pixel/${x}/${y}`} hx-target={`#${x}-${y}`} hx-swap="outerHTML" />;
     }
 };
 
 const Canvas = ({ grid }: { grid: Grid }): JSX.Element => {
+        console.log("loading canvas")
     return <div id="grid" class={`grid grid-cols-${GRID_SIZE}`}>
         {...grid.map((row, x) => { 
             return <div id="row" class="flex flex-row">
-                {...row.map((cell, y) => 
-                    <Pixel state={cell.state} x={x} y={y} />
+                {...row.map((cell, y) => { 
+                    if (cell.state != CellState.Empty) {
+                        console.log(cell.state, x, y)
+                    }
+                    return <Pixel state={cell.state} x={x} y={y} />;
+                }
                 )}
             </div>;
         })}
